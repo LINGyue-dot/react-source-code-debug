@@ -527,7 +527,10 @@ export function resetHooksAfterThrow(): void {
 
   didScheduleRenderPhaseUpdateDuringThisPass = false;
 }
-
+/**
+ * 初始化 hook
+ * @returns 
+ */
 function mountWorkInProgressHook(): Hook {
   const hook: Hook = {
     memoizedState: null,
@@ -538,12 +541,12 @@ function mountWorkInProgressHook(): Hook {
 
     next: null,
   };
-
+  // workInProgressHook 链表的指针
   if (workInProgressHook === null) {
-    // This is the first hook in the list
+    // currentlyRenderingFiber 即 workInProgress ，指向 wip fiber 节点
     currentlyRenderingFiber.memoizedState = workInProgressHook = hook;
   } else {
-    // Append to the end of the list
+    // 如果已经存在链表
     workInProgressHook = workInProgressHook.next = hook;
   }
   return workInProgressHook;
@@ -1129,6 +1132,7 @@ function mountState<S>(
     BasicStateAction<S>,
   > = (queue.dispatch = (dispatchAction.bind(
     null,
+    // currentlyRenderingFiber === workInProgress
     currentlyRenderingFiber,
     queue,
   ): any));
@@ -1678,17 +1682,20 @@ function dispatchAction<S, A>(
     pending.next = update;
   }
   queue.pending = update;
-
+  // 这时候还没有 wip 树
   const alternate = fiber.alternate;
   if (
     fiber === currentlyRenderingFiber ||
     (alternate !== null && alternate === currentlyRenderingFiber)
   ) {
+    // https://react.iamkasong.com/hooks/usestate.html#%E8%B0%83%E7%94%A8%E9%98%B6%E6%AE%B5
+    // 是否在 render 阶段，如果在 render 阶段那么就是 true ，那么就额外处理避免循环渲染
     // This is a render phase update. Stash it in a lazily-created map of
     // queue -> linked list of updates. After this render pass, we'll restart
     // and apply the stashed updates on top of the work-in-progress hook.
     didScheduleRenderPhaseUpdateDuringThisPass = didScheduleRenderPhaseUpdate = true;
   } else {
+    // 不在 render 阶段
     if (
       fiber.lanes === NoLanes &&
       (alternate === null || alternate.lanes === NoLanes)
@@ -1712,6 +1719,7 @@ function dispatchAction<S, A>(
           // without calling the reducer again.
           update.eagerReducer = lastRenderedReducer;
           update.eagerState = eagerState;
+          // 浅比较，新 state 与旧  state 
           if (is(eagerState, currentState)) {
             // Fast path. We can bail out without scheduling React to re-render.
             // It's still possible that we'll need to rebase this update later,
@@ -1735,6 +1743,7 @@ function dispatchAction<S, A>(
         warnIfNotCurrentlyActingUpdatesInDev(fiber);
       }
     }
+    // 调度渲染 该 fiber
     scheduleUpdateOnFiber(fiber, lane, eventTime);
   }
 

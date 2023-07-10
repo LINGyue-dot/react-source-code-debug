@@ -550,6 +550,7 @@ export function scheduleUpdateOnFiber(
   lane: Lane,
   eventTime: number,
 ) {
+  // 检测是否无限循环的 update
   checkForNestedUpdates();
   warnAboutRenderPhaseUpdatesInDEV(fiber);
 
@@ -665,6 +666,12 @@ export function scheduleUpdateOnFiber(
 // work without treating it as a typical update that originates from an event;
 // e.g. retrying a Suspense boundary isn't an update, but it does schedule work
 // on a fiber.
+/**
+ * 找到 fiberRoot 并更新子节点的 lane
+ * @param {*} sourceFiber 
+ * @param {*} lane 
+ * @returns 
+ */
 function markUpdateLaneFromFiberToRoot(
   sourceFiber: Fiber,
   lane: Lane,
@@ -1036,6 +1043,7 @@ function performSyncWorkOnRoot(root) {
     'Should not already be working.',
   );
 
+  // SEAN ??
   flushPassiveEffects();
 
   let lanes;
@@ -1715,7 +1723,7 @@ function workLoopConcurrent() {
     performUnitOfWork(workInProgress);
   }
 }
-
+// !!! 初始化时候 current 指向，以及 wip 树的样子是什么样
 function performUnitOfWork(unitOfWork: Fiber): void {
   // The current, flushed, state of this fiber is the alternate. Ideally
   // nothing should rely on this, but relying on it here means that we don't
@@ -2508,6 +2516,7 @@ function commitLayoutEffects(root: FiberRoot, committedLanes: Lanes) {
   }
 }
 
+// 获取 effectList
 export function flushPassiveEffects(): boolean {
   // Returns whether passive effects were flushed.
   if (pendingPassiveEffectsRenderPriority !== NoSchedulerPriority) {
@@ -2522,6 +2531,7 @@ export function flushPassiveEffects(): boolean {
         setCurrentUpdateLanePriority(
           schedulerPriorityToLanePriority(priorityLevel),
         );
+        // 执行 flushPassiveEffectsImpl 
         return runWithPriority(priorityLevel, flushPassiveEffectsImpl);
       } finally {
         setCurrentUpdateLanePriority(previousLanePriority);
@@ -3029,6 +3039,10 @@ function jnd(timeElapsed: number) {
     : ceil(timeElapsed / 1960) * 1960;
 }
 
+/**
+ * 检测是否无限循环，
+ * 例如在 render 中无条件调用 setState
+ */
 function checkForNestedUpdates() {
   if (nestedUpdateCount > NESTED_UPDATE_LIMIT) {
     nestedUpdateCount = 0;

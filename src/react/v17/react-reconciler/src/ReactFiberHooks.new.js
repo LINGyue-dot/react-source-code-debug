@@ -445,6 +445,7 @@ export function renderWithHooks<Props, SecondArg>(
 
   // We can assume the previous dispatcher is always this one, since we set it
   // at the beginning of the render phase and there's no re-entrancy.
+  // 避免出现 hook 嵌套现象
   ReactCurrentDispatcher.current = ContextOnlyDispatcher;
 
   if (__DEV__) {

@@ -940,6 +940,7 @@ function updateEffectImpl(fiberEffectTag, hookEffectTag, create, deps): void {
     if (nextDeps !== null) {
       const prevDeps = prevEffect.deps;
       if (areHookInputsEqual(nextDeps, prevDeps)) {
+        // !!! 这里为什么不用 hook.memoizedState ??
         pushEffect(hookEffectTag, create, destroy, nextDeps);
         return;
       }
